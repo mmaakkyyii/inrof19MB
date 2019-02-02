@@ -4,7 +4,7 @@
 #include "gpio.h"
 #include "tim.h"
 #include "usart.h"
-//#include "spi.h"
+#include "spi.h"
 
 
 
@@ -19,9 +19,6 @@ int spi_data_size=2;
 
 void Init(){
 
-
-//    HAL_SPI_Receive_IT(&hspi1, spi_buff, spi_data_size);//Start the receiving process?
-
 	HAL_TIM_Base_Start_IT(&htim1);
 
 	char data[20]="Hello rietion\r\n";
@@ -35,8 +32,17 @@ void Loop(){
 }
 
 
-
+float vel=0;
 
 void TimerInterrupt(){//ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
+	vel++;
+	if(vel>1000)vel=-1000;
 	HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_8);
+
+	char po[5]={};
+	int num = sprintf(po,"%d\r\n",(int)vel);
+	Debug(po,num);
+
+	motor1.Drive(vel);
+
 }
