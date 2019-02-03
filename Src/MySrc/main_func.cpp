@@ -34,7 +34,7 @@ void Loop(){
 
 float vel=0;
 
-void TimerInterrupt(){//ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
+void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 	vel++;
 	if(vel>1000)vel=-1000;
 	HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_8);
@@ -44,5 +44,6 @@ void TimerInterrupt(){//ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 	Debug(po,num);
 
 	motor1.Drive(vel);
+	motor2.Drive(-vel);
 
 }
