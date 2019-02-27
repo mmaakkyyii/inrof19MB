@@ -5,7 +5,7 @@
 #include "tim.h"
 #include "usart.h"
 #include "spi.h"
-
+#include "main.h"
 
 
 void Debug(char* data,int size){
@@ -24,6 +24,9 @@ void Init(){
 	char data[20]="Hello rietion\r\n";
 	Debug(data,20);
 
+	HAL_TIM_PWM_Start(&htim4,TIM_CHANNEL_4);
+
+
 	HAL_Delay(100);
 }
 
@@ -37,7 +40,11 @@ float vel=0;
 void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 	vel++;
 	if(vel>1000)vel=-1000;
-	HAL_GPIO_TogglePin(GPIOA,GPIO_PIN_8);
+	if((int)vel%100==0){
+		HAL_GPIO_TogglePin(LED1_GPIO_Port,LED1_Pin);
+		HAL_GPIO_TogglePin(LED2_GPIO_Port,LED2_Pin);
+		HAL_GPIO_TogglePin(LED3_GPIO_Port,LED3_Pin);
+	}
 
 	char po[5]={};
 	int num = sprintf(po,"%d\r\n",(int)vel);
