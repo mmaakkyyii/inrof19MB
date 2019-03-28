@@ -78,6 +78,8 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define ROTARY_SW1_Pin GPIO_PIN_13
+#define ROTARY_SW1_GPIO_Port GPIOC
 #define SW_Pin GPIO_PIN_14
 #define SW_GPIO_Port GPIOC
 #define MOTOR1_Pin GPIO_PIN_0
@@ -106,6 +108,12 @@ void Error_Handler(void);
 #define LED2_GPIO_Port GPIOB
 #define LED1_Pin GPIO_PIN_8
 #define LED1_GPIO_Port GPIOA
+#define ROTARY_SW0_Pin GPIO_PIN_6
+#define ROTARY_SW0_GPIO_Port GPIOB
+#define ROTARY_SW2_Pin GPIO_PIN_7
+#define ROTARY_SW2_GPIO_Port GPIOB
+#define ROTARY_SW3_Pin GPIO_PIN_8
+#define ROTARY_SW3_GPIO_Port GPIOB
 #define BUZZER_Pin GPIO_PIN_9
 #define BUZZER_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
