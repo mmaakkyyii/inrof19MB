@@ -172,8 +172,12 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 	if(vel<-max){
 		d=1;
 	}
+	if(d<0){
+		HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_RESET);
+	}else{
+		HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_SET);
+	}
 	if(HAL_GPIO_ReadPin(SW_GPIO_Port,SW_Pin)){
-		HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,HAL_GPIO_ReadPin(ROTARY_SW0_GPIO_Port,ROTARY_SW0_Pin));
 		HAL_GPIO_WritePin(LED2_GPIO_Port,LED2_Pin,HAL_GPIO_ReadPin(ROTARY_SW1_GPIO_Port,ROTARY_SW1_Pin));
 		HAL_GPIO_WritePin(LED3_GPIO_Port,LED3_Pin,HAL_GPIO_ReadPin(ROTARY_SW2_GPIO_Port,ROTARY_SW2_Pin));
 		HAL_GPIO_WritePin(SOLENOID1_GPIO_Port,SOLENOID1_Pin,GPIO_PIN_SET);
@@ -183,6 +187,10 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 		HAL_GPIO_WritePin(SOLENOID2_GPIO_Port,SOLENOID2_Pin,GPIO_PIN_SET);
 
 	}
+	servo1.SetAngle((int)(vel/100.0f*180));
+	servo2.SetAngle((int)(vel/100.0f*180));
+	servo3.SetAngle((int)(vel/100.0f*180));
+	servo4.SetAngle((int)(vel/100.0f*180));
 
 	//char po[5]={};
 	//int num = sprintf(po,"%d\r\n",(int)vel);
