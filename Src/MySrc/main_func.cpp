@@ -51,7 +51,7 @@ bool UartUpdate(){
 uint8_t spi_buff[2];
 int spi_data_size=2;
 
-const int rx_data_size=13;
+const int rx_data_size=14;
 uint8_t RxData[rx_data_size];
 uint8_t TxData[10]={0,1,2,3,4,5,6,7,8,9};
 
@@ -71,14 +71,6 @@ void Init(){
 	char data[20]="Hello rietion\r\n";
 	USBDebug(data,20);
 
-	BuzzerOn(Do);	HAL_Delay(300);
-	BuzzerOn(Re);	HAL_Delay(300);
-	BuzzerOn(Mi);	HAL_Delay(300);
-	BuzzerOn(Fa);	HAL_Delay(300);
-	BuzzerOn(So);	HAL_Delay(300);
-	BuzzerOn(Ra);	HAL_Delay(300);
-	BuzzerOn(Si);	HAL_Delay(300);
-	BuzzerOn(DoH);	HAL_Delay(300);
 
 	BuzzerOff();
 	HAL_Delay(100);
@@ -98,7 +90,7 @@ void Loop(){
 float vel=0;
 
 bool UpdateUartBuffer(int *data){
-	for(int i=0;i<5;i++)data[i]=0;
+	for(int i=0;i<6;i++)data[i]=0;
 	int start_bit_addr1=-1;
 	int start_bit_addr2=-1;
 	int check_sum_addr=-1;
@@ -141,7 +133,6 @@ bool UpdateUartBuffer(int *data){
 		}
 
 		while(1){
-
 			if(i==rx_data_size-1){
 				data[count]=(int16_t)( ( ((uint16_t)RxData[i])&0xFF ) |( (((uint16_t)RxData[0])&0xFF)<<8 ) );
 				i=1;
@@ -153,7 +144,10 @@ bool UpdateUartBuffer(int *data){
 				i+=2;
 			}
 			count++;
-			if(i==check_sum_addr)break;
+			if(count==5){
+				data[count]=RxData[i];
+				break;
+			}
 		}
 
 		return 1;
@@ -236,18 +230,27 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 
 	Debug(poi,n);
 */
-	int receive_data[5];
+	int receive_data[6];
 	UpdateUartBuffer(receive_data);
 
-	int n=sprintf(poi,"%d,%d,%d,%d,%d \r\n",receive_data[0],receive_data[1],receive_data[2],receive_data[3],receive_data[4]);
+	//	int n=sprintf(poi,"%d,%d,%d,%d,%d \r\n",receive_data[0],receive_data[1],receive_data[2],receive_data[3],receive_data[4]);
+	//	Debug(poi,n);
 
+	float v_ref[3]={receive_data[0],receive_data[1],receive_data[2]};
+	float v_wheel[4]={0,0,0,0};
+	float r=120.0f;
+	v_wheel[0]=v_ref[0]+v_ref[1]-r*v_ref[2];
+	v_wheel[1]=v_ref[0]-v_ref[1]-r*v_ref[2];
+	v_wheel[2]=v_ref[0]-v_ref[1]+r*v_ref[2];
+	v_wheel[3]=v_ref[0]+v_ref[1]+r*v_ref[2];
+
+	int n=sprintf(poi,"%d,%d,%d,%d \r\n",(int)v_wheel[0],(int)v_wheel[1],(int)v_wheel[2],(int)v_wheel[3]);
 	Debug(poi,n);
 
-
-	motor1.Drive(-vel);
-	motor2.Drive(vel);
-	motor3.Drive(vel);
-	motor4.Drive(-vel);
+	motor1.Drive(v_wheel[0]);
+	motor2.Drive(v_wheel[1]);
+	motor3.Drive(v_wheel[2]);
+	motor4.Drive(v_wheel[3]);
 
 }
 
