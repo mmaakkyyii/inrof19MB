@@ -179,7 +179,6 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 	}else{
 		HAL_GPIO_WritePin(SOLENOID1_GPIO_Port,SOLENOID1_Pin,GPIO_PIN_RESET);
 		HAL_GPIO_WritePin(SOLENOID2_GPIO_Port,SOLENOID2_Pin,GPIO_PIN_SET);
-
 	}
 	servo1.SetAngle((int)(vel/100.0f*180));
 	servo2.SetAngle((int)(vel/100.0f*180));
@@ -212,40 +211,46 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 			(char)RxData[11],
 			(char)RxData[12]);
 */
-/*	int n =sprintf(poi,"%d:%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\r\n",
-			huart3.hdmarx->Instance->CNDTR,
-			(char)RxData[0],
-			(char)RxData[1],
-			(char)RxData[2],
-			(char)RxData[3],
-			(char)RxData[4],
-			(char)RxData[5],
-			(char)RxData[6],
-			(char)RxData[7],
-			(char)RxData[8],
-			(char)RxData[9],
-			(char)RxData[10],
-			(char)RxData[11],
-			(char)RxData[12]);
 
-	Debug(poi,n);
-*/
+
+
 	int receive_data[6];
 	UpdateUartBuffer(receive_data);
 
-	//	int n=sprintf(poi,"%d,%d,%d,%d,%d \r\n",receive_data[0],receive_data[1],receive_data[2],receive_data[3],receive_data[4]);
-	//	Debug(poi,n);
 
-	float v_ref[3]={receive_data[0],receive_data[1],receive_data[2]};
+	float v_ref[3]={receive_data[0],receive_data[1],receive_data[2]/1000.0f};
 	float v_wheel[4]={0,0,0,0};
 	float r=120.0f;
 	v_wheel[0]=v_ref[0]+v_ref[1]-r*v_ref[2];
 	v_wheel[1]=v_ref[0]-v_ref[1]-r*v_ref[2];
-	v_wheel[2]=v_ref[0]-v_ref[1]+r*v_ref[2];
-	v_wheel[3]=v_ref[0]+v_ref[1]+r*v_ref[2];
+	v_wheel[2]=v_ref[0]+v_ref[1]+r*v_ref[2];
+	v_wheel[3]=v_ref[0]-v_ref[1]+r*v_ref[2];
 
-	int n=sprintf(poi,"%d,%d,%d,%d \r\n",(int)v_wheel[0],(int)v_wheel[1],(int)v_wheel[2],(int)v_wheel[3]);
-	Debug(poi,n);
+	if(HAL_GPIO_ReadPin(SW_GPIO_Port,SW_Pin)){
+		int n =sprintf(poi,"%d:%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\r\n",
+				huart3.hdmarx->Instance->CNDTR,
+				(char)RxData[0],
+				(char)RxData[1],
+				(char)RxData[2],
+				(char)RxData[3],
+				(char)RxData[4],
+				(char)RxData[5],
+				(char)RxData[6],
+				(char)RxData[7],
+				(char)RxData[8],
+				(char)RxData[9],
+				(char)RxData[10],
+				(char)RxData[11],
+				(char)RxData[12],
+				(char)RxData[13]);
+
+		Debug(poi,n);
+
+	}else{
+		int n=sprintf(poi,"%d,%d,%d,%d,%d,%d \r\n",receive_data[0],receive_data[1],receive_data[2],receive_data[3],receive_data[4],receive_data[5]);
+		Debug(poi,n);
+
+	}
 
 	motor1.Drive(v_wheel[0]);
 	motor2.Drive(v_wheel[1]);
