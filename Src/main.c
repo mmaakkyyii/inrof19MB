@@ -102,7 +102,8 @@ int main(void)
 
   /* USER CODE END Init */
 
-  /* Configure the system clock */
+  /* Configure the syst
+   * em clock */
   SystemClock_Config();
 
   /* USER CODE BEGIN SysInit */
