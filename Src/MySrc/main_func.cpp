@@ -66,16 +66,16 @@ const int DoH=523;
 
 
 void Init(){
-	HAL_TIM_Base_Start_IT(&htim1);
 
 	char data[20]="Hello rietion\r\n";
 	USBDebug(data,20);
 
 
 	BuzzerOff();
-	HAL_Delay(100);
+	HAL_Delay(1000);
 
 
+	HAL_TIM_Base_Start_IT(&htim1);
 
 	HAL_UART_Receive_DMA(&huart3, RxData,rx_data_size);
 //	HAL_UART_Transmit_DMA(&huart3, TxData,10);
@@ -217,14 +217,18 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 	int receive_data[6];
 	UpdateUartBuffer(receive_data);
 
-
-	float v_ref[3]={receive_data[0],receive_data[1],receive_data[2]/1000.0f};
+	float v_ref[3]={(float)receive_data[0],(float)receive_data[1],(float)receive_data[2]/1000.0f};
 	float v_wheel[4]={0,0,0,0};
 	float r=120.0f;
 	v_wheel[0]=v_ref[0]+v_ref[1]-r*v_ref[2];
 	v_wheel[1]=v_ref[0]-v_ref[1]-r*v_ref[2];
 	v_wheel[2]=v_ref[0]+v_ref[1]+r*v_ref[2];
 	v_wheel[3]=v_ref[0]-v_ref[1]+r*v_ref[2];
+
+	motor1.Drive(v_wheel[0]);
+	motor2.Drive(v_wheel[1]);
+	motor3.Drive(v_wheel[2]);
+	motor4.Drive(v_wheel[3]);
 
 	if(HAL_GPIO_ReadPin(SW_GPIO_Port,SW_Pin)){
 		int n =sprintf(poi,"%d:%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\r\n",
@@ -251,11 +255,6 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 		Debug(poi,n);
 
 	}
-
-	motor1.Drive(v_wheel[0]);
-	motor2.Drive(v_wheel[1]);
-	motor3.Drive(v_wheel[2]);
-	motor4.Drive(v_wheel[3]);
 
 }
 
