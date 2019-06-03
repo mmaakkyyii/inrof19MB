@@ -52,7 +52,8 @@ uint8_t spi_buff[2];
 int spi_data_size=2;
 
 const int rx_data_size=14;
-uint8_t RxData[rx_data_size];
+const int rx_buffer_size=30;
+uint8_t RxData[rx_buffer_size];
 uint8_t TxData[10]={0,1,2,3,4,5,6,7,8,9};
 
 const int Do=261;
@@ -77,7 +78,7 @@ void Init(){
 
 	HAL_TIM_Base_Start_IT(&htim1);
 
-	HAL_UART_Receive_DMA(&huart3, RxData,rx_data_size);
+	HAL_UART_Receive_DMA(&huart3, RxData,rx_buffer_size);
 //	HAL_UART_Transmit_DMA(&huart3, TxData,10);
 
 }
@@ -94,7 +95,89 @@ bool UpdateUartBuffer(int *data){
 	int start_bit_addr1=-1;
 	int start_bit_addr2=-1;
 	int check_sum_addr=-1;
+	int buffer_position=huart3.hdmarx->Instance->CNDTR-1;
 
+	for(int i=buffer_position;i>=0;i--){
+		if(RxData[i]==0xFF && RxData[i+1]==0xFF){
+			start_bit_addr1=i;
+			start_bit_addr2=i+1;
+			if(i+rx_data_size-1>rx_buffer_size-1)check_sum_addr=(i+rx_data_size-1)-(rx_buffer_size-1);
+			else check_sum_addr=i+rx_data_size-1;
+		}
+	}
+	if(start_bit_addr1==-1){
+		if(RxData[0]==0xFF && RxData[rx_buffer_size]==0xFF){//スタートビットが配列の初めと最後に分かれてた時
+			start_bit_addr1=rx_buffer_size;
+			start_bit_addr2=0;
+			check_sum_addr=rx_data_size-1;
+		}
+	}
+
+	if(start_bit_addr1==-1){
+		for(int i= rx_buffer_size-1;i>buffer_position;i--){
+			if(RxData[i]==0xFF && RxData[i+1]==0xFF){
+				start_bit_addr1=i;
+				start_bit_addr2=i+1;
+				if(i+rx_data_size-1>rx_buffer_size-1)check_sum_addr=(i+rx_data_size-1)-(rx_buffer_size-1);
+				else check_sum_addr=i+rx_data_size-1;
+			}
+
+		}
+	}
+
+	if(start_bit_addr1==-1){
+		return 0;//スタートビットが見つからなかったときはfalseを返す
+	}
+
+
+	uint8_t sum=0x00;
+	for(int i=0;i<rx_buffer_size;i++){
+		if(start_bit_addr1<check_sum_addr){
+			if(start_bit_addr2<i && i<check_sum_addr){
+				sum=sum xor RxData[i];
+			}
+		}else{
+			if(i<check_sum_addr && i<start_bit_addr2){
+				sum=sum xor RxData[i];
+			}
+		}
+	}
+
+	if(RxData[check_sum_addr]==sum){
+		int count=0;
+		int i=start_bit_addr2;
+		if(i==rx_buffer_size-2){
+			i=0;
+		}else if(i==rx_buffer_size-1){
+			i=1;
+		}else{
+			i+=1;
+		}
+
+		while(1){
+			if(i==rx_buffer_size-1){
+				data[count]=(int16_t)( ( ((uint16_t)RxData[i])&0xFF ) |( (((uint16_t)RxData[0])&0xFF)<<8 ) );
+				i=1;
+			}else if(i==rx_buffer_size){
+				data[count]=(int16_t)( ( ((uint16_t)RxData[0])&0xFF ) |( (((uint16_t)RxData[1])& 0xFF)<<8 ) );
+				i=2;
+			}else{
+				data[count]=(int16_t)( ( ((uint16_t)RxData[i])&0xFF ) |( (((uint16_t)RxData[i+1])& 0xFF)<<8 ) );
+				i+=2;
+			}
+			count++;
+			if(count==5){
+				data[count]=RxData[i];
+				break;
+			}
+		}
+
+		return 1;
+	}
+  	return 0;
+
+	//////////////
+	/*
 	for(int i=0;i<rx_data_size-1;i++){
 		if(RxData[i]==0xFF && RxData[i+1]==0xFF){
 			start_bit_addr1=i;
@@ -153,7 +236,7 @@ bool UpdateUartBuffer(int *data){
 		return 1;
 	}
 	return -1;
-
+	*/
 }
 
 void TimerInterrupt(){//10msおきに呼ばれる
@@ -173,7 +256,6 @@ void TimerInterrupt(){//10msおきに呼ばれる
 	}
 	if(HAL_GPIO_ReadPin(SW_GPIO_Port,SW_Pin)){
 		HAL_GPIO_WritePin(LED2_GPIO_Port,LED2_Pin,HAL_GPIO_ReadPin(ROTARY_SW1_GPIO_Port,ROTARY_SW1_Pin));
-		HAL_GPIO_WritePin(LED3_GPIO_Port,LED3_Pin,HAL_GPIO_ReadPin(ROTARY_SW2_GPIO_Port,ROTARY_SW2_Pin));
 		HAL_GPIO_WritePin(SOLENOID1_GPIO_Port,SOLENOID1_Pin,GPIO_PIN_SET);
 		HAL_GPIO_WritePin(SOLENOID2_GPIO_Port,SOLENOID2_Pin,GPIO_PIN_RESET);
 	}else{
@@ -215,23 +297,29 @@ void TimerInterrupt(){//10msおきに呼ばれる
 
 
 	int receive_data[6];
-	UpdateUartBuffer(receive_data);
+	bool uart_check=UpdateUartBuffer(receive_data);
+	if(uart_check){
+		float v_ref[3]={(float)receive_data[0],(float)receive_data[1],(float)receive_data[2]/1000.0f};
+		float v_wheel[4]={0,0,0,0};
+		float r=120.0f;
+		v_wheel[0]=v_ref[0]+v_ref[1]-r*v_ref[2];
+		v_wheel[1]=v_ref[0]-v_ref[1]-r*v_ref[2];
+		v_wheel[2]=v_ref[0]+v_ref[1]+r*v_ref[2];
+		v_wheel[3]=v_ref[0]-v_ref[1]+r*v_ref[2];
 
-	float v_ref[3]={(float)receive_data[0],(float)receive_data[1],(float)receive_data[2]/1000.0f};
-	float v_wheel[4]={0,0,0,0};
-	float r=120.0f;
-	v_wheel[0]=v_ref[0]+v_ref[1]-r*v_ref[2];
-	v_wheel[1]=v_ref[0]-v_ref[1]-r*v_ref[2];
-	v_wheel[2]=v_ref[0]+v_ref[1]+r*v_ref[2];
-	v_wheel[3]=v_ref[0]-v_ref[1]+r*v_ref[2];
+		motor1.Drive(v_wheel[0]);
+		motor2.Drive(v_wheel[1]);
+		motor3.Drive(v_wheel[2]);
+		motor4.Drive(v_wheel[3]);
 
-	motor1.Drive(v_wheel[0]);
-	motor2.Drive(v_wheel[1]);
-	motor3.Drive(v_wheel[2]);
-	motor4.Drive(v_wheel[3]);
+		HAL_GPIO_WritePin(LED3_GPIO_Port,LED3_Pin,GPIO_PIN_SET);
+	}else{
+		HAL_GPIO_WritePin(LED3_GPIO_Port,LED3_Pin,GPIO_PIN_RESET);
+	}
+
 
 	if(HAL_GPIO_ReadPin(SW_GPIO_Port,SW_Pin)){
-		int n =sprintf(poi,"%d:%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\r\n",
+/*		int n =sprintf(poi,"%d:%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\r\n",
 				huart3.hdmarx->Instance->CNDTR,
 				(char)RxData[0],
 				(char)RxData[1],
@@ -247,19 +335,19 @@ void TimerInterrupt(){//10msおきに呼ばれる
 				(char)RxData[11],
 				(char)RxData[12],
 				(char)RxData[13]);
-
-		Debug(poi,n);
+*/
+		//Debug(poi,n);
 
 	}else{
-		int n=sprintf(poi,"%d,%d,%d,%d,%d,%d \r\n",receive_data[0],receive_data[1],receive_data[2],receive_data[3],receive_data[4],receive_data[5]);
-		Debug(poi,n);
+//		int n=sprintf(poi,"%d,%2d,%d,%d,%d\r\n",uart_check,huart3.hdmarx->Instance->CNDTR,receive_data[0],receive_data[1],receive_data[2]);
+//		Debug(poi,n);
 
 	}
 
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
-	HAL_UART_Receive_DMA(&huart3,RxData, rx_data_size);
+	HAL_UART_Receive_DMA(&huart3,RxData, rx_buffer_size);
 
 //	int heard1=(int)RxData[0];
 //	int heard2=(int)RxData[1];
