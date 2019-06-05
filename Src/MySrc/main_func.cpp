@@ -75,16 +75,16 @@ void Init(){
 	BuzzerOff();
 	HAL_Delay(1000);
 
+	HAL_GPIO_WritePin(SOLENOID1_GPIO_Port,SOLENOID1_Pin,GPIO_PIN_SET);
+	HAL_GPIO_WritePin(SOLENOID2_GPIO_Port,SOLENOID2_Pin,GPIO_PIN_RESET);
 
 	HAL_TIM_Base_Start_IT(&htim1);
 
 	HAL_UART_Receive_DMA(&huart3, RxData,rx_buffer_size);
-//	HAL_UART_Transmit_DMA(&huart3, TxData,10);
 
 }
 
 void Loop(){
-//	HAL_SPI_Receive(&hspi1,spi_buff,spi_data_size,10);
 }
 
 float vel=0;
@@ -223,7 +223,7 @@ int UpdateUartBuffer(int *data){
 void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 	static int solenoid_flag=0;
 	static int d=1;
-	int max=100;
+	int max=10;
 	vel+=d;
 	if(vel>max){
 		d=-1;
@@ -236,6 +236,7 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 	}else{
 		HAL_GPIO_WritePin(LED3_GPIO_Port,LED3_Pin,GPIO_PIN_SET);
 	}
+
 	if(HAL_GPIO_ReadPin(SW_GPIO_Port,SW_Pin)){
 		solenoid_flag++;
 		if(solenoid_flag<10){
@@ -243,10 +244,8 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 		}else{
 			HAL_GPIO_WritePin(SOLENOID2_GPIO_Port,SOLENOID2_Pin,GPIO_PIN_RESET);
 		}
-		HAL_GPIO_WritePin(SOLENOID1_GPIO_Port,SOLENOID1_Pin,GPIO_PIN_RESET);
 	}else{
 		solenoid_flag=0;
-		HAL_GPIO_WritePin(SOLENOID1_GPIO_Port,SOLENOID1_Pin,GPIO_PIN_SET);
 		HAL_GPIO_WritePin(SOLENOID2_GPIO_Port,SOLENOID2_Pin,GPIO_PIN_RESET);
 	}
 	if(d==1){
