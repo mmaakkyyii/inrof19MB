@@ -39,8 +39,10 @@ void Servo::PWM(int duty){
 }
 
 void Servo::SetAngle(int angle){//angle 0~180;
+	const int max_duty=3000;
+	const int min_duty=500;
 
-	PWM((int)(19999/20.0f*(1+angle/180.0f)));
+	PWM((int)((max_duty-min_duty)*(angle/180.0f)+min_duty));
 
 }
 
