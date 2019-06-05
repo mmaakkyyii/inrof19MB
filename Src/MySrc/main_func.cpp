@@ -52,7 +52,7 @@ uint8_t spi_buff[2];
 int spi_data_size=2;
 
 const int rx_data_size=14;
-const int rx_buffer_size=30;
+const int rx_buffer_size=255;
 uint8_t RxData[rx_buffer_size];
 uint8_t TxData[10]={0,1,2,3,4,5,6,7,8,9};
 
@@ -87,10 +87,9 @@ void Loop(){
 //	HAL_SPI_Receive(&hspi1,spi_buff,spi_data_size,10);
 }
 
-
 float vel=0;
 
-bool UpdateUartBuffer(int *data){
+int UpdateUartBuffer(int *data){
 	for(int i=0;i<6;i++)data[i]=0;
 	int start_bit_addr1=-1;
 	int start_bit_addr2=-1;
@@ -101,32 +100,14 @@ bool UpdateUartBuffer(int *data){
 		if(RxData[i]==0xFF && RxData[i+1]==0xFF){
 			start_bit_addr1=i;
 			start_bit_addr2=i+1;
-			if(i+rx_data_size-1>rx_buffer_size-1)check_sum_addr=(i+rx_data_size-1)-(rx_buffer_size-1);
-			else check_sum_addr=i+rx_data_size-1;
-		}
-	}
-	if(start_bit_addr1==-1){
-		if(RxData[0]==0xFF && RxData[rx_buffer_size]==0xFF){//スタートビットが配列の初めと最後に分かれてた時
-			start_bit_addr1=rx_buffer_size;
-			start_bit_addr2=0;
-			check_sum_addr=rx_data_size-1;
+			if(i+rx_data_size-1<rx_buffer_size-1)check_sum_addr=i+rx_data_size-1;
+			else return 0;
+			break;
 		}
 	}
 
 	if(start_bit_addr1==-1){
-		for(int i= rx_buffer_size-1;i>buffer_position;i--){
-			if(RxData[i]==0xFF && RxData[i+1]==0xFF){
-				start_bit_addr1=i;
-				start_bit_addr2=i+1;
-				if(i+rx_data_size-1>rx_buffer_size-1)check_sum_addr=(i+rx_data_size-1)-(rx_buffer_size-1);
-				else check_sum_addr=i+rx_data_size-1;
-			}
-
-		}
-	}
-
-	if(start_bit_addr1==-1){
-		return 0;//スタートビットが見つからなかったときはfalseを返す
+		return -1;//スタートビットが見つからなかったときはfalseを返す
 	}
 
 
@@ -240,6 +221,7 @@ bool UpdateUartBuffer(int *data){
 }
 
 void TimerInterrupt(){//10msおきに呼ばれる
+	static int solenoid_flag=0;
 	static int d=1;
 	int max=100;
 	vel+=d;
@@ -250,22 +232,34 @@ void TimerInterrupt(){//10msおきに呼ばれる
 		d=1;
 	}
 	if(d<0){
-		HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LED3_GPIO_Port,LED3_Pin,GPIO_PIN_RESET);
 	}else{
-		HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_SET);
+		HAL_GPIO_WritePin(LED3_GPIO_Port,LED3_Pin,GPIO_PIN_SET);
 	}
 	if(HAL_GPIO_ReadPin(SW_GPIO_Port,SW_Pin)){
-		HAL_GPIO_WritePin(LED2_GPIO_Port,LED2_Pin,HAL_GPIO_ReadPin(ROTARY_SW1_GPIO_Port,ROTARY_SW1_Pin));
+		solenoid_flag++;
+		if(solenoid_flag<10){
+			HAL_GPIO_WritePin(SOLENOID2_GPIO_Port,SOLENOID2_Pin,GPIO_PIN_SET);
+		}else{
+			HAL_GPIO_WritePin(SOLENOID2_GPIO_Port,SOLENOID2_Pin,GPIO_PIN_RESET);
+		}
+		HAL_GPIO_WritePin(SOLENOID1_GPIO_Port,SOLENOID1_Pin,GPIO_PIN_RESET);
+	}else{
+		solenoid_flag=0;
 		HAL_GPIO_WritePin(SOLENOID1_GPIO_Port,SOLENOID1_Pin,GPIO_PIN_SET);
 		HAL_GPIO_WritePin(SOLENOID2_GPIO_Port,SOLENOID2_Pin,GPIO_PIN_RESET);
-	}else{
-		HAL_GPIO_WritePin(SOLENOID1_GPIO_Port,SOLENOID1_Pin,GPIO_PIN_RESET);
-		HAL_GPIO_WritePin(SOLENOID2_GPIO_Port,SOLENOID2_Pin,GPIO_PIN_SET);
 	}
-	servo1.SetAngle((int)(vel/100.0f*180));
-	servo2.SetAngle((int)(vel/100.0f*180));
-	servo3.SetAngle((int)(vel/100.0f*180));
-	servo4.SetAngle((int)(vel/100.0f*180));
+	if(d==1){
+		servo1.SetAngle(0);
+		servo2.SetAngle(10);
+		servo3.SetAngle(140);
+		servo4.SetAngle(180);
+	}else{
+		servo1.SetAngle(0);
+		servo2.SetAngle(50);
+		servo3.SetAngle(50);
+		servo4.SetAngle(180);
+	}
 
 	//char po[5]={};
 	//int num = sprintf(po,"%d\r\n",(int)vel);
@@ -297,8 +291,8 @@ void TimerInterrupt(){//10msおきに呼ばれる
 
 
 	int receive_data[6];
-	bool uart_check=UpdateUartBuffer(receive_data);
-	if(uart_check){
+	int uart_check=UpdateUartBuffer(receive_data);
+	if(uart_check==1){
 		float v_ref[3]={(float)receive_data[0],(float)receive_data[1],(float)receive_data[2]/1000.0f};
 		float v_wheel[4]={0,0,0,0};
 		float r=120.0f;
@@ -312,14 +306,14 @@ void TimerInterrupt(){//10msおきに呼ばれる
 		motor3.Drive(v_wheel[2]);
 		motor4.Drive(v_wheel[3]);
 
-		HAL_GPIO_WritePin(LED3_GPIO_Port,LED3_Pin,GPIO_PIN_SET);
+		HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_SET);
 	}else{
-		HAL_GPIO_WritePin(LED3_GPIO_Port,LED3_Pin,GPIO_PIN_RESET);
+		HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_RESET);
 	}
 
 
 	if(HAL_GPIO_ReadPin(SW_GPIO_Port,SW_Pin)){
-/*		int n =sprintf(poi,"%d:%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\r\n",
+		int n =sprintf(poi,"%d:%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\r\n",
 				huart3.hdmarx->Instance->CNDTR,
 				(char)RxData[0],
 				(char)RxData[1],
@@ -335,12 +329,12 @@ void TimerInterrupt(){//10msおきに呼ばれる
 				(char)RxData[11],
 				(char)RxData[12],
 				(char)RxData[13]);
-*/
-		//Debug(poi,n);
+
+		Debug(poi,n);
 
 	}else{
-//		int n=sprintf(poi,"%d,%2d,%d,%d,%d\r\n",uart_check,huart3.hdmarx->Instance->CNDTR,receive_data[0],receive_data[1],receive_data[2]);
-//		Debug(poi,n);
+		int n=sprintf(poi,"%d,%2d,%d,%d,%d\r\n",uart_check,huart3.hdmarx->Instance->CNDTR,receive_data[0],receive_data[1],receive_data[2]);
+		Debug(poi,n);
 
 	}
 
