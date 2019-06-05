@@ -110,7 +110,6 @@ int UpdateUartBuffer(int *data){
 		return -1;//スタートビットが見つからなかったときはfalseを返す
 	}
 
-
 	uint8_t sum=0x00;
 	for(int i=0;i<rx_buffer_size;i++){
 		if(start_bit_addr1<check_sum_addr){
@@ -157,67 +156,6 @@ int UpdateUartBuffer(int *data){
 	}
   	return 0;
 
-	//////////////
-	/*
-	for(int i=0;i<rx_data_size-1;i++){
-		if(RxData[i]==0xFF && RxData[i+1]==0xFF){
-			start_bit_addr1=i;
-			start_bit_addr2=i+1;
-			if(start_bit_addr1==0){//スタートビットが配列の先頭にいるときチェックサムは配列の一番最後にいるははず
-				check_sum_addr=rx_data_size-1;
-			}else{
-				check_sum_addr=i-1;
-			}
-		}
-	}
-	if(RxData[0]==0xFF && RxData[rx_data_size]==0xFF){//スタートビットが配列の初めと最後に分かれてた時
-		start_bit_addr1=rx_data_size;
-		start_bit_addr2=0;
-		check_sum_addr=rx_data_size-1;
-	}
-	if(start_bit_addr1==-1)return 0;//スタートビットが見つからなかったときはfalseを返す
-
-
-	uint8_t sum=0x00;
-	for(int i=0;i<rx_data_size;i++){
-		if(i!=start_bit_addr1 && i!=start_bit_addr2 && i!=check_sum_addr){
-			sum=sum xor RxData[i];
-		}
-	}
-
-	if(RxData[check_sum_addr]==sum){
-		int count=0;
-		int i=start_bit_addr2;
-		if(i==rx_data_size-2){
-			i=0;
-		}else if(i==rx_data_size-1){
-			i=1;
-		}else{
-			i+=1;
-		}
-
-		while(1){
-			if(i==rx_data_size-1){
-				data[count]=(int16_t)( ( ((uint16_t)RxData[i])&0xFF ) |( (((uint16_t)RxData[0])&0xFF)<<8 ) );
-				i=1;
-			}else if(i==rx_data_size){
-				data[count]=(int16_t)( ( ((uint16_t)RxData[0])&0xFF ) |( (((uint16_t)RxData[1])& 0xFF)<<8 ) );
-				i=2;
-			}else{
-				data[count]=(int16_t)( ( ((uint16_t)RxData[i])&0xFF ) |( (((uint16_t)RxData[i+1])& 0xFF)<<8 ) );
-				i+=2;
-			}
-			count++;
-			if(count==5){
-				data[count]=RxData[i];
-				break;
-			}
-		}
-
-		return 1;
-	}
-	return -1;
-	*/
 }
 
 void TimerInterrupt(){//10msおきに呼ばれる
@@ -260,33 +198,6 @@ void TimerInterrupt(){//10msおきに呼ばれる
 		servo4.SetAngle(180);
 	}
 
-	//char po[5]={};
-	//int num = sprintf(po,"%d\r\n",(int)vel);
-	//Debug(po,num);
-
-	//USBDebug(po,num);
-	char poi[30]={};
-
-//	if(huart3.hdmarx->Instance->CNDTR==(rx_data_size))	huart3.hdmarx->Instance->CNDTR=16;
-
-
-/*	int n =sprintf(poi,"%d:%c,%c,%c,%c,%c,%c,%c,%c,%c,%c,%c,%c,%c%c\r\n",
-			huart3.hdmarx->Instance->CNDTR,
-			(char)RxData[0],
-			(char)RxData[1],
-			(char)RxData[2],
-			(char)RxData[3],
-			(char)RxData[4],
-			(char)RxData[5],
-			(char)RxData[6],
-			(char)RxData[7],
-			(char)RxData[8],
-			(char)RxData[9],
-			(char)RxData[10],
-			(char)RxData[11],
-			(char)RxData[12]);
-*/
-
 
 
 	int receive_data[6];
@@ -310,66 +221,13 @@ void TimerInterrupt(){//10msおきに呼ばれる
 		HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_RESET);
 	}
 
+	char poi[30];
 
-	if(HAL_GPIO_ReadPin(SW_GPIO_Port,SW_Pin)){
-		int n =sprintf(poi,"%d:%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\r\n",
-				huart3.hdmarx->Instance->CNDTR,
-				(char)RxData[0],
-				(char)RxData[1],
-				(char)RxData[2],
-				(char)RxData[3],
-				(char)RxData[4],
-				(char)RxData[5],
-				(char)RxData[6],
-				(char)RxData[7],
-				(char)RxData[8],
-				(char)RxData[9],
-				(char)RxData[10],
-				(char)RxData[11],
-				(char)RxData[12],
-				(char)RxData[13]);
-
-		Debug(poi,n);
-
-	}else{
-		int n=sprintf(poi,"%d,%2d,%d,%d,%d\r\n",uart_check,huart3.hdmarx->Instance->CNDTR,receive_data[0],receive_data[1],receive_data[2]);
-		Debug(poi,n);
-
-	}
+	int n=sprintf(poi,"%d,%2d,%d,%d,%d\r\n",uart_check,(int)huart3.hdmarx->Instance->CNDTR,receive_data[0],receive_data[1],receive_data[2]);
+	Debug(poi,n);
 
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
 	HAL_UART_Receive_DMA(&huart3,RxData, rx_buffer_size);
-
-//	int heard1=(int)RxData[0];
-//	int heard2=(int)RxData[1];
-//	int v_x    =(int)( (0xFF & (uint16_t)(RxData[2])) | (uint16_t)(RxData[3])<<8 );
-//	int v_y    =(int)( (0xFF & (uint16_t)(RxData[4])) | (uint16_t)(RxData[5])<<8 );
-//	int v_theta=(int)( (0xFF & (uint16_t)(RxData[6])) | (uint16_t)(RxData[7])<<8 );
-//
-//	int angle1 =(int)( (0xFF & (uint16_t)(RxData[8])) | (uint16_t)(RxData[9])<<8 );
-//	int angle2 =(int)( (0xFF & (uint16_t)(RxData[10])) | (uint16_t)(RxData[11])<<8 );
-
-
-//	char po[30]={};
-//	int num = sprintf(po,"%d,%d,%d,%d,%d\r\n",heard1,heard2,v_x,v_y,v_theta,angle1,angle2);
-//	int num =sprintf(po,"%c,%c,%c,%c,%c,%c,%c,%c,%c,%c,%c,%c,%c,%c\r\n",
-//			(char)RxData[0],
-//			(char)RxData[1],
-//			(char)RxData[2],
-//			(char)RxData[3],
-//			(char)RxData[4],
-//			(char)RxData[5],
-//			(char)RxData[6],
-//			(char)RxData[7],
-//			(char)RxData[8],
-//			(char)RxData[9],
-//			(char)RxData[10],
-//			(char)RxData[11],
-//			(char)RxData[12],
-//			(char)RxData[13]);
-//	Debug(po,num);
-
-//	for(int i=0;i<16;i++)RxData[i]=' ';
 }
