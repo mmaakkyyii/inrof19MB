@@ -11,3 +11,5 @@ Servo servo2(0,2,2);
 Servo servo3(0,3,1);
 Servo servo4(0,3,2);
 
+CatchAndThrow catch_and_throw;
+

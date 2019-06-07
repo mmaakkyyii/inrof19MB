@@ -6,7 +6,14 @@
 #include "usart.h"
 #include "spi.h"
 #include "main.h"
+#include "catch_and_throw.h"
 
+int GetRotarySW(){
+	return   (int)!HAL_GPIO_ReadPin(ROTARY_SW0_GPIO_Port,ROTARY_SW0_Pin)
+			|(int)!HAL_GPIO_ReadPin(ROTARY_SW1_GPIO_Port,ROTARY_SW1_Pin)<<1
+			|(int)!HAL_GPIO_ReadPin(ROTARY_SW2_GPIO_Port,ROTARY_SW2_Pin)<<2
+			|(int)!HAL_GPIO_ReadPin(ROTARY_SW3_GPIO_Port,ROTARY_SW3_Pin)<<3;
+}
 
 void BuzzerOn(int frq){
 	TIM_OC_InitTypeDef sConfigOC = {0};
@@ -159,7 +166,13 @@ int UpdateUartBuffer(int *data){
 }
 
 void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
-	static int solenoid_flag=0;
+	catch_and_throw.Update();
+
+	if(GetRotarySW()==2){
+		catch_and_throw.CatchReady();
+		catch_and_throw.CatchBall();
+	}
+
 	static int d=1;
 	int max=10;
 	vel+=d;
@@ -174,30 +187,6 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 	}else{
 		HAL_GPIO_WritePin(LED3_GPIO_Port,LED3_Pin,GPIO_PIN_SET);
 	}
-
-	if(HAL_GPIO_ReadPin(SW_GPIO_Port,SW_Pin)){
-		solenoid_flag++;
-		if(solenoid_flag<10){
-			HAL_GPIO_WritePin(SOLENOID2_GPIO_Port,SOLENOID2_Pin,GPIO_PIN_SET);
-		}else{
-			HAL_GPIO_WritePin(SOLENOID2_GPIO_Port,SOLENOID2_Pin,GPIO_PIN_RESET);
-		}
-	}else{
-		solenoid_flag=0;
-		HAL_GPIO_WritePin(SOLENOID2_GPIO_Port,SOLENOID2_Pin,GPIO_PIN_RESET);
-	}
-	if(d==1){
-		servo1.SetAngle(0);
-		servo2.SetAngle(10);
-		servo3.SetAngle(140);
-		servo4.SetAngle(180);
-	}else{
-		servo1.SetAngle(0);
-		servo2.SetAngle(50);
-		servo3.SetAngle(50);
-		servo4.SetAngle(180);
-	}
-
 
 
 	int receive_data[6];
@@ -216,13 +205,22 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 		motor3.Drive(v_wheel[2]);
 		motor4.Drive(v_wheel[3]);
 
+		if(receive_data[5]==1){
+			catch_and_throw.ThrowBall();
+		}
+//		else if(receive_data[5]==2){
+//			catch_and_throw.CatchReady();
+//			catch_and_throw.CatchBall();
+//
+//		}
+
 		HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_SET);
 	}else{
 		HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_RESET);
 	}
 
-	char poi[30];
 
+	char poi[30];
 	int n=sprintf(poi,"%d,%2d,%d,%d,%d\r\n",uart_check,(int)huart3.hdmarx->Instance->CNDTR,receive_data[0],receive_data[1],receive_data[2]);
 	Debug(poi,n);
 
