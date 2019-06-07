@@ -28,7 +28,7 @@ void CatchAndThrow::PullSolenoid(){
 }
 
 void CatchAndThrow::ThrowBall(){
-	if(solenoid_counter>=solenoid_counter_max){
+	if(solenoid_counter>=solenoid_counter_max && mode==CatchAndThrowMode::catch_ready){
 		mode=CatchAndThrowMode::throw_mode;
 		solenoid_counter=0;
 	}
@@ -69,8 +69,7 @@ void CatchAndThrow::Update(){
 		}
 		if(set_counter>set_counter_max){
 			HAL_GPIO_WritePin(LED2_GPIO_Port,LED2_Pin,GPIO_PIN_RESET);
-			mode=CatchAndThrowMode::throw_mode;
-			ThrowBall();
+			mode=CatchAndThrowMode::catch_ready;
 			set_counter=0;
 		}
 		break;

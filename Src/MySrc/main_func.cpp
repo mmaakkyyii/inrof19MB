@@ -168,11 +168,6 @@ int UpdateUartBuffer(int *data){
 void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 	catch_and_throw.Update();
 
-	if(GetRotarySW()==2){
-		catch_and_throw.CatchReady();
-		catch_and_throw.CatchBall();
-	}
-
 	static int d=1;
 	int max=10;
 	vel+=d;
@@ -207,12 +202,11 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 
 		if(receive_data[5]==1){
 			catch_and_throw.ThrowBall();
+		}else if(receive_data[5]==2){
+			catch_and_throw.CatchReady();
+			catch_and_throw.CatchBall();
+
 		}
-//		else if(receive_data[5]==2){
-//			catch_and_throw.CatchReady();
-//			catch_and_throw.CatchBall();
-//
-//		}
 
 		HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_SET);
 	}else{
