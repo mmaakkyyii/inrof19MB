@@ -190,19 +190,19 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 		float v_ref[3]={(float)receive_data[0],(float)receive_data[1],(float)receive_data[2]/1000.0f};
 		float v_wheel[4]={0,0,0,0};
 		float r=120.0f;
-		v_wheel[0]=v_ref[0]+v_ref[1]-r*v_ref[2];
-		v_wheel[1]=v_ref[0]-v_ref[1]-r*v_ref[2];
-		v_wheel[2]=v_ref[0]+v_ref[1]+r*v_ref[2];
-		v_wheel[3]=v_ref[0]-v_ref[1]+r*v_ref[2];
+		v_wheel[0]=-v_ref[0]+v_ref[1]-r*v_ref[2];
+		v_wheel[1]=-v_ref[0]-v_ref[1]-r*v_ref[2];
+		v_wheel[2]=-v_ref[0]+v_ref[1]+r*v_ref[2];
+		v_wheel[3]=-v_ref[0]-v_ref[1]+r*v_ref[2];
 
 		motor1.Drive(v_wheel[0]);
 		motor2.Drive(v_wheel[1]);
 		motor3.Drive(v_wheel[2]);
 		motor4.Drive(v_wheel[3]);
 
-		if(receive_data[5]==1){
+		if(receive_data[5]==0x01){
 			catch_and_throw.ThrowBall();
-		}else if(receive_data[5]==2){
+		}else if(receive_data[5]==0x10){
 			catch_and_throw.CatchReady();
 			catch_and_throw.CatchBall();
 
@@ -215,7 +215,7 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 
 
 	char poi[30];
-	int n=sprintf(poi,"%d,%2d,%d,%d,%d\r\n",uart_check,(int)huart3.hdmarx->Instance->CNDTR,receive_data[0],receive_data[1],receive_data[2]);
+	int n=sprintf(poi,"%d,%d,%d,%d,%d,%d\r\n",receive_data[0],receive_data[1],receive_data[2],receive_data[3],receive_data[4],receive_data[5]);
 	Debug(poi,n);
 
 }
