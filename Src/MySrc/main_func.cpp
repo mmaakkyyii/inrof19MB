@@ -58,9 +58,6 @@ bool UartUpdate(){
 uint8_t spi_buff[2];
 int spi_data_size=2;
 
-const int rx_data_size=14;
-const int rx_buffer_size=255;
-uint8_t RxData[rx_buffer_size];
 uint8_t TxData[10]={0,1,2,3,4,5,6,7,8,9};
 
 const int Do=261;
@@ -87,7 +84,8 @@ void Init(){
 
 	HAL_TIM_Base_Start_IT(&htim1);
 
-	HAL_UART_Receive_DMA(&huart3, RxData,rx_buffer_size);
+	uart_buffer_stlink.Init();
+	uart_buffer_usb.Init();
 
 }
 
@@ -95,75 +93,6 @@ void Loop(){
 }
 
 float vel=0;
-
-int UpdateUartBuffer(int *data){
-	for(int i=0;i<6;i++)data[i]=0;
-	int start_bit_addr1=-1;
-	int start_bit_addr2=-1;
-	int check_sum_addr=-1;
-	int buffer_position=huart3.hdmarx->Instance->CNDTR-1;
-
-	for(int i=buffer_position;i>=0;i--){
-		if(RxData[i]==0xFF && RxData[i+1]==0xFF){
-			start_bit_addr1=i;
-			start_bit_addr2=i+1;
-			if(i+rx_data_size-1<rx_buffer_size-1)check_sum_addr=i+rx_data_size-1;
-			else return 0;
-			break;
-		}
-	}
-
-	if(start_bit_addr1==-1){
-		return -1;//スタートビットが見つからなかったときはfalseを返す
-	}
-
-	uint8_t sum=0x00;
-	for(int i=0;i<rx_buffer_size;i++){
-		if(start_bit_addr1<check_sum_addr){
-			if(start_bit_addr2<i && i<check_sum_addr){
-				sum=sum xor RxData[i];
-			}
-		}else{
-			if(i<check_sum_addr && i<start_bit_addr2){
-				sum=sum xor RxData[i];
-			}
-		}
-	}
-
-	if(RxData[check_sum_addr]==sum){
-		int count=0;
-		int i=start_bit_addr2;
-		if(i==rx_buffer_size-2){
-			i=0;
-		}else if(i==rx_buffer_size-1){
-			i=1;
-		}else{
-			i+=1;
-		}
-
-		while(1){
-			if(i==rx_buffer_size-1){
-				data[count]=(int16_t)( ( ((uint16_t)RxData[i])&0xFF ) |( (((uint16_t)RxData[0])&0xFF)<<8 ) );
-				i=1;
-			}else if(i==rx_buffer_size){
-				data[count]=(int16_t)( ( ((uint16_t)RxData[0])&0xFF ) |( (((uint16_t)RxData[1])& 0xFF)<<8 ) );
-				i=2;
-			}else{
-				data[count]=(int16_t)( ( ((uint16_t)RxData[i])&0xFF ) |( (((uint16_t)RxData[i+1])& 0xFF)<<8 ) );
-				i+=2;
-			}
-			count++;
-			if(count==5){
-				data[count]=RxData[i];
-				break;
-			}
-		}
-
-		return 1;
-	}
-  	return 0;
-
-}
 
 void TimerInterrupt(){//10msおきに呼ばれる
 	catch_and_throw.Update();
@@ -185,9 +114,9 @@ void TimerInterrupt(){//10msおきに呼ばれる
 
 
 	int receive_data[6];
-	int uart_check=UpdateUartBuffer(receive_data);
-	if(uart_check==1){
-		float v_ref[3]={(float)receive_data[0],(float)receive_data[1],(float)receive_data[2]/1000.0f};
+	bool uart_check=uart_buffer_usb.Update();
+	if(uart_check){
+		float v_ref[3]={(float)uart_buffer_usb.GetVx(),(float)uart_buffer_usb.GetVy(),(float)uart_buffer_usb.GetVw()/1000.0f};
 		float v_wheel[4]={0,0,0,0};
 		float r=120.0f;
 		v_wheel[0]=-v_ref[0]+v_ref[1]-r*v_ref[2];
@@ -200,13 +129,17 @@ void TimerInterrupt(){//10msおきに呼ばれる
 		motor3.Drive(v_wheel[2]);
 		motor4.Drive(v_wheel[3]);
 
-		if(receive_data[5]==0x01){
+		if(uart_buffer_usb.GetCatchThrowFlag()==0x01){
 			catch_and_throw.ThrowBall();
 		}else if(receive_data[5]==0x10){
-			catch_and_throw.CatchReady();
+//			catch_and_throw.CatchReady();
 			catch_and_throw.CatchBall();
-
 		}
+
+
+		char poi[30];
+		int n=sprintf(poi,"%d,%d,%d,%d,%d,%d\r\n",(int)uart_check,uart_buffer_usb.GetVx(),uart_buffer_usb.GetVy(),uart_buffer_usb.GetVw(),uart_buffer_usb.GetCatchThrowFlag(),uart_buffer_usb.GetCheckSum());
+		Debug(poi,n);
 
 		HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_SET);
 	}else{
@@ -214,12 +147,13 @@ void TimerInterrupt(){//10msおきに呼ばれる
 	}
 
 
-	char poi[30];
-	int n=sprintf(poi,"%d,%d,%d,%d,%d,%d\r\n",receive_data[0],receive_data[1],receive_data[2],receive_data[3],receive_data[4],receive_data[5]);
-	Debug(poi,n);
 
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
-	HAL_UART_Receive_DMA(&huart3,RxData, rx_buffer_size);
+	if(huart==&huart3){
+		HAL_UART_Receive_DMA(&huart3,uart_buffer_usb.GetBufferPointer(), uart_buffer_usb.GetBufferSize());
+	}else if(huart==&huart1){
+		HAL_UART_Receive_DMA(&huart1,uart_buffer_stlink.GetBufferPointer(), uart_buffer_stlink.GetBufferSize());
+	}
 }

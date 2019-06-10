@@ -13,3 +13,5 @@ Servo servo4(0,3,2);
 
 CatchAndThrow catch_and_throw;
 
+UartBufferStlink uart_buffer_stlink;
+UartBufferUSB uart_buffer_usb;
