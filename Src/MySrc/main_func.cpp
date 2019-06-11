@@ -112,10 +112,8 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 		HAL_GPIO_WritePin(LED3_GPIO_Port,LED3_Pin,GPIO_PIN_SET);
 	}
 
-
-	int receive_data[6];
-	bool uart_check=uart_buffer_usb.Update();
-	if(uart_check){
+	int uart_check=uart_buffer_usb.Update();
+	if(uart_check==1){
 		float v_ref[3]={(float)uart_buffer_usb.GetVx(),(float)uart_buffer_usb.GetVy(),(float)uart_buffer_usb.GetVw()/1000.0f};
 		float v_wheel[4]={0,0,0,0};
 		float r=120.0f;
@@ -131,21 +129,43 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 
 		if(uart_buffer_usb.GetCatchThrowFlag()==0x01){
 			catch_and_throw.ThrowBall();
-		}else if(receive_data[5]==0x10){
+		}else if(uart_buffer_usb.GetCatchThrowFlag()==0x10){
 //			catch_and_throw.CatchReady();
 			catch_and_throw.CatchBall();
 		}
 
 
-		char poi[30];
-		int n=sprintf(poi,"%d,%d,%d,%d,%d,%d\r\n",(int)uart_check,uart_buffer_usb.GetVx(),uart_buffer_usb.GetVy(),uart_buffer_usb.GetVw(),uart_buffer_usb.GetCatchThrowFlag(),uart_buffer_usb.GetCheckSum());
-		Debug(poi,n);
+		if(uart_buffer_usb.GetVy()==255){
+			HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_SET);
+		}else{
+			HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_RESET);
+		}
 
-		HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_SET);
+
+
 	}else{
-		HAL_GPIO_WritePin(LED1_GPIO_Port,LED1_Pin,GPIO_PIN_RESET);
 	}
 
+	char poi[40];
+	//int n=sprintf(poi,"%d,%d,%d,%d,%d,%d\r\n",(int)uart_check,uart_buffer_usb.GetVx(),uart_buffer_usb.GetVy(),uart_buffer_usb.GetVw(),uart_buffer_usb.GetCatchThrowFlag(),uart_buffer_usb.GetCheckSum());
+	//int n=sprintf(poi,"%d,%d,%d,%d,%d,%d\r\n",uart_check,uart_buffer_usb.GetVx(),uart_buffer_usb.GetVy(),uart_buffer_usb.GetVw(),uart_buffer_usb.GetCatchThrowFlag(),uart_buffer_usb.GetCheckSum());
+	int n=sprintf(poi,"%2d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\r\n"
+			,uart_check
+			,uart_buffer_usb.GetBuffer(0)
+			,uart_buffer_usb.GetBuffer(1)
+			,uart_buffer_usb.GetBuffer(2)
+			,uart_buffer_usb.GetBuffer(3)
+			,uart_buffer_usb.GetBuffer(4)
+			,uart_buffer_usb.GetBuffer(5)
+			,uart_buffer_usb.GetBuffer(6)
+			,uart_buffer_usb.GetBuffer(7)
+			,uart_buffer_usb.GetBuffer(8)
+			,uart_buffer_usb.GetBuffer(9)
+			,uart_buffer_usb.GetBuffer(10)
+			,uart_buffer_usb.GetBuffer(11)
+			,uart_buffer_usb.GetBuffer(12)
+			,uart_buffer_usb.GetBuffer(13));
+	Debug(poi,n);
 
 
 }

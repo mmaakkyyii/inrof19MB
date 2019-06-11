@@ -15,14 +15,14 @@ int8_t UartBuffer::Getint8Value(int offset){
 
 
 static int JetsonCheckStartbit(uint8_t* buf,int buffer_position){
-	if(buffer_position<2){
-		return -2;//i+1で配列外アクセスを防ぐ
+	if(buffer_position>250){
+		return -1;//i+1で配列外アクセスを防ぐ
 	}
 
-	for(int i=255-buffer_position;i>=0;i--){
-		if(buf[i]==0xff && buf[i+1]==0xff){
-			if(i<255-14)return i;
-			else return 0;
+	for(int i=buffer_position;i>=0;i--){
+		if((0xff==buf[i]) && (0xff==buf[i+1])){
+			if(i+14<255)return i;
+			else return -1;
 		}
 	}
 	return -1;
@@ -32,9 +32,13 @@ static int JetsonCheckStartbit(uint8_t* buf,int buffer_position){
 static char JetsonChecksum(uint8_t* buf,uint8_t addr){
 	uint8_t sum=0;
 	for(int i=2;i<13;i++){
-		sum=sum^buf[i+addr];
+		sum=sum^buf[addr+i];
 	}
-	return (sum==buf[addr+13]);
+	if(sum==buf[addr+13]){
+		return 1;
+	}else{
+		return 0;
+	}
 }
 
 
@@ -71,25 +75,25 @@ void UartBufferUSB::Init(){
 
 }
 
-bool UartBuffer::Update(){
+int UartBuffer::Update(){
 	int buffer_position=0;
 	if(uart_num==1){
-		buffer_position=huart1.hdmarx->Instance->CNDTR;
+		buffer_position=buffer_size-huart1.hdmarx->Instance->CNDTR;
 	}else if(uart_num==3){
-		buffer_position=huart3.hdmarx->Instance->CNDTR;
+		buffer_position=buffer_size-huart3.hdmarx->Instance->CNDTR;
 	}else{
-		return 0;
+		return -3;
 	}
 	start_bit=CheckStartbit(buffer,buffer_position);
 	if(start_bit<0){
-		return 0;
+		return -2;
 	}
 
 	if(Checksum(buffer,start_bit)){
 		return 1;
 	}
 
-	return 0;
+	return -1;
 
 }
 
