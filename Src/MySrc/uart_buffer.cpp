@@ -67,6 +67,25 @@ void UartBufferStlink::Init(){
 	HAL_UART_Receive_DMA(&huart1, uart_buffer.GetBufferPointer(), uart_buffer.GetBufferSize());
 }
 
+int16_t UartBufferStlink::GetTheta(){
+	return -uart_buffer.Getint16Value(3);
+	//return -(int16_t)(((uint16_t)(uart_buffer.Getint8Value(3)<<8))|((uint16_t)(uart_buffer.Getint8Value(4))));
+}
+
+float UartBufferStlink::GetRadian(){
+	static int pre_deg=0;
+	static int rotation_n=0;
+	int deg = -uart_buffer.Getint16Value(3);
+	int diff = deg - pre_deg;
+	if(diff<-34000) rotation_n++;
+	if(diff>34000) rotation_n--;
+	int _theta=rotation_n*36000+deg;
+	pre_deg = deg;
+	return _theta*3.141592f/(180.0f*100.0f);
+}
+
+
+
 UartBufferUSB::UartBufferUSB():uart_buffer(14,3,JetsonChecksum,JetsonCheckStartbit){
 }
 

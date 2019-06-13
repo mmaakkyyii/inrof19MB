@@ -112,7 +112,15 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 		HAL_GPIO_WritePin(LED3_GPIO_Port,LED3_Pin,GPIO_PIN_SET);
 	}
 
+	char poi[40];
+
+
 	int uart_check=uart_buffer_usb.Update();
+	int gyro_check=uart_buffer_stlink.Update();
+	if(gyro_check){
+		int n=sprintf(poi,"%7d,%4d\r\n",(int)uart_buffer_stlink.GetTheta(),(int)(uart_buffer_stlink.GetRadian()*180/3.14f) );
+		Debug(poi,n);
+	}
 	if(uart_check==1){
 		float v_ref[3]={(float)uart_buffer_usb.GetVx(),(float)uart_buffer_usb.GetVy(),(float)uart_buffer_usb.GetVw()/1000.0f};
 		float v_wheel[4]={0,0,0,0};
@@ -146,10 +154,9 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 	}else{
 	}
 
-	char poi[40];
 	//int n=sprintf(poi,"%d,%d,%d,%d,%d,%d\r\n",(int)uart_check,uart_buffer_usb.GetVx(),uart_buffer_usb.GetVy(),uart_buffer_usb.GetVw(),uart_buffer_usb.GetCatchThrowFlag(),uart_buffer_usb.GetCheckSum());
 	//int n=sprintf(poi,"%d,%d,%d,%d,%d,%d\r\n",uart_check,uart_buffer_usb.GetVx(),uart_buffer_usb.GetVy(),uart_buffer_usb.GetVw(),uart_buffer_usb.GetCatchThrowFlag(),uart_buffer_usb.GetCheckSum());
-	int n=sprintf(poi,"%2d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\r\n"
+/*	int n=sprintf(poi,"%2d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d\r\n"
 			,uart_check
 			,uart_buffer_usb.GetBuffer(0)
 			,uart_buffer_usb.GetBuffer(1)
@@ -166,7 +173,7 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 			,uart_buffer_usb.GetBuffer(12)
 			,uart_buffer_usb.GetBuffer(13));
 	Debug(poi,n);
-
+*/
 
 }
 

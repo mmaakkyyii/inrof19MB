@@ -45,6 +45,9 @@ public:
 	uint8_t *GetBufferPointer(){return uart_buffer.GetBufferPointer();}
 	uint8_t GetBufferSize(){return uart_buffer.GetBufferSize();}
 
+	int16_t GetTheta();
+	float GetRadian();
+
 };
 
 class UartBufferUSB{
