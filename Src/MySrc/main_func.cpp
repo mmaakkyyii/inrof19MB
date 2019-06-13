@@ -95,6 +95,7 @@ void Loop(){
 float vel=0;
 
 void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
+	static float theta=0;
 	catch_and_throw.Update();
 
 	static int d=1;
@@ -120,10 +121,14 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 	if(gyro_check){
 		int n=sprintf(poi,"%7d,%4d\r\n",(int)uart_buffer_stlink.GetTheta(),(int)(uart_buffer_stlink.GetRadian()*180/3.14f) );
 		Debug(poi,n);
+		theta=uart_buffer_stlink.GetRadian();
 	}
 	if(uart_check==1){
 		float v_ref[3]={(float)uart_buffer_usb.GetVx(),(float)uart_buffer_usb.GetVy(),(float)uart_buffer_usb.GetVw()/1000.0f};
 		float v_wheel[4]={0,0,0,0};
+		v_ref[0]=0;
+		v_ref[1]=0;
+		v_ref[2]=5*(v_ref[2]-uart_buffer_stlink.GetRadian());
 		float r=120.0f;
 		v_wheel[0]=-v_ref[0]+v_ref[1]-r*v_ref[2];
 		v_wheel[1]=-v_ref[0]-v_ref[1]-r*v_ref[2];
