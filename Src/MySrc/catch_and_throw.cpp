@@ -7,8 +7,16 @@
 CatchAndThrow::CatchAndThrow(){
 }
 
+void CatchAndThrow::Ready(){
+	if(mode==CatchAndThrowMode::catch_ready){
+		mode=CatchAndThrowMode::ready;
+	}
+}
+
 void CatchAndThrow::CatchReady(){
-	mode=CatchAndThrowMode::catch_ready;
+	if(mode==CatchAndThrowMode::ready){
+		mode=CatchAndThrowMode::catch_ready;
+	}
 }
 
 void CatchAndThrow::CatchBall(){
@@ -38,7 +46,7 @@ void CatchAndThrow::Update(){
 	switch(mode){
 	case CatchAndThrowMode::ready:
 		PullSolenoid();
-		servo2.SetAngle(90);
+		servo2.SetAngle(140);
 		servo3.SetAngle(70);
 		break;
 	case CatchAndThrowMode::catch_ready:

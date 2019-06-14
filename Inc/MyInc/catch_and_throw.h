@@ -20,7 +20,7 @@ private:
 	const int solenoid_counter_max=10;
 	int solenoid_counter=solenoid_counter_max;
 
-	CatchAndThrowMode mode=CatchAndThrowMode::catch_ready;
+	CatchAndThrowMode mode=CatchAndThrowMode::ready;
 
 	void PushSolenoid();
 	void PullSolenoid();
@@ -30,6 +30,7 @@ private:
 
 public:
 	CatchAndThrow();
+	void Ready();
 	void CatchReady();
 	void CatchBall();
 	void ThrowBall();

@@ -148,9 +148,12 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 		if(uart_buffer_usb.GetCatchThrowFlag()==0x01){
 			catch_and_throw.ThrowBall();
 		}else if(uart_buffer_usb.GetCatchThrowFlag()==0x10){
-//			catch_and_throw.CatchReady();
 			catch_and_throw.CatchBall();
-		}
+		}else if(uart_buffer_usb.GetCatchThrowFlag()==0x02){
+			catch_and_throw.CatchReady();
+		}else if(uart_buffer_usb.GetCatchThrowFlag()==0x03){
+		catch_and_throw.Ready();
+	}
 
 
 
