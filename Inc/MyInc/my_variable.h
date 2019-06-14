@@ -5,6 +5,7 @@
 #include "motor.h"
 #include "servo.h"
 #include "catch_and_throw.h"
+#include "controller.h"
 
 
 extern Motor motor1;
@@ -21,5 +22,8 @@ extern CatchAndThrow catch_and_throw;
 
 extern UartBufferStlink uart_buffer_stlink;
 extern UartBufferUSB uart_buffer_usb;
+
+extern ControllerZPID controller;
+
 
 #endif //_MY_VARIABLE_H_

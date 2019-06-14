@@ -7,6 +7,7 @@
 #include "spi.h"
 #include "main.h"
 #include "catch_and_throw.h"
+#include "math.h"
 
 int GetRotarySW(){
 	return   (int)!HAL_GPIO_ReadPin(ROTARY_SW0_GPIO_Port,ROTARY_SW0_Pin)
@@ -96,6 +97,7 @@ float vel=0;
 
 void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 	static float theta=0;
+	static float pre_theta=0;
 	catch_and_throw.Update();
 
 	static int d=1;
@@ -119,16 +121,19 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 	int uart_check=uart_buffer_usb.Update();
 	int gyro_check=uart_buffer_stlink.Update();
 	if(gyro_check){
-		int n=sprintf(poi,"%7d,%4d\r\n",(int)uart_buffer_stlink.GetTheta(),(int)(uart_buffer_stlink.GetRadian()*180/3.14f) );
-		Debug(poi,n);
 		theta=uart_buffer_stlink.GetRadian();
+		if(abs(pre_theta-theta)>0.8)theta=pre_theta;
+		pre_theta=theta;
 	}
 	if(uart_check==1){
 		float v_ref[3]={(float)uart_buffer_usb.GetVx(),(float)uart_buffer_usb.GetVy(),(float)uart_buffer_usb.GetVw()/1000.0f};
 		float v_wheel[4]={0,0,0,0};
-		v_ref[0]=0;
-		v_ref[1]=0;
-		v_ref[2]=5*(v_ref[2]-uart_buffer_stlink.GetRadian());
+		int n=sprintf(poi,"%4d,%4d\r\n",(int)(v_ref[2]*1000),(int)(theta*1000));
+		Debug(poi,n);
+
+		controller.SetReference(v_ref[2]);
+		v_ref[2]=controller.Update(theta);
+
 		float r=120.0f;
 		v_wheel[0]=-v_ref[0]+v_ref[1]-r*v_ref[2];
 		v_wheel[1]=-v_ref[0]-v_ref[1]-r*v_ref[2];
@@ -146,6 +151,8 @@ void TimerInterrupt(){//10ms‚¨‚«‚ÉŒÄ‚Î‚ê‚é
 //			catch_and_throw.CatchReady();
 			catch_and_throw.CatchBall();
 		}
+
+
 
 
 		if(uart_buffer_usb.GetVy()==255){

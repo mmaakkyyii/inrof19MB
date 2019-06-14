@@ -15,3 +15,6 @@ CatchAndThrow catch_and_throw;
 
 UartBufferStlink uart_buffer_stlink;
 UartBufferUSB uart_buffer_usb;
+
+ControllerZPID controller(6.0f, 0.05f, 0.0f, 0.01f, 10.0f);
+
